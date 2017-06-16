@@ -9,7 +9,7 @@
 import WatchKit
 import SpriteKit
 
-class GameScene: SKScene, WKCrownDelegate {
+class GameScene: SKScene, WKCrownDelegate, SKPhysicsContactDelegate {
 
      var gameScene: GameScene!
      var player = SKNode()
@@ -23,13 +23,22 @@ class GameScene: SKScene, WKCrownDelegate {
      var alertDelay = 1.0
      var moveSpeed = 70.0
      var createDelay = 0.5
+     var score = 0 {
+          didSet {
+               parentInterfaceController?.setTitle("Score: \(score)")
+               
+          }
+     }
+     
+     weak var parentInterfaceController: InterfaceController?
      
      
-     
-
      override func sceneDidLoad() {
           
+          physicsWorld.contactDelegate = self
+          
           backgroundColor = UIColor(red: 0.1, green: 0.1, blue: 0.1, alpha: 1)
+          
           
           let red = createPlayer(color: "Red")
           red.position = CGPoint(x: -8, y: 8)
@@ -67,6 +76,8 @@ class GameScene: SKScene, WKCrownDelegate {
      
           let component = SKSpriteNode(imageNamed: "player\(color)")
           
+          component.physicsBody = SKPhysicsBody(texture: component.texture!, size: component.size)
+          component.physicsBody?.isDynamic = false
           component.name = color
           player.addChild(component)
           
@@ -153,5 +164,63 @@ class GameScene: SKScene, WKCrownDelegate {
           alertDelay *= 0.98
   
      }
-
+     
+     func didBegin(_ contact: SKPhysicsContact) {
+          
+          guard let nodeA = contact.bodyA.node else { return }
+          guard let nodeB = contact.bodyB.node else { return }
+          
+          if nodeA.parent == self {
+               
+               ball(nodeA, hit: nodeB)
+               
+          } else if nodeB.parent == self {
+               
+               ball(nodeB, hit: nodeA)
+               
+          } else {
+          
+               //neither? just exit!
+               return
+          }
+          
+          DispatchQueue.main.asyncAfter(deadline: .now() + createDelay) {
+               
+               self.launchBall()
+          }
+     }
+     
+     func ball(_ ball: SKNode, hit color: SKNode) {
+     
+          //don't run this more than once
+          guard isPlayerAlive else { return }
+          
+          //destroy the ball no matter what
+          ball.removeFromParent()
+          
+          if ball.name == color.name {
+               
+               //player scored a point!
+               score += 1
+               
+          } else {
+               
+               //game over
+               isPlayerAlive = false
+               
+               let gameOver = SKSpriteNode(imageNamed: "gameOver")
+               gameOver.xScale = 2.0
+               gameOver.yScale = 2.0
+               gameOver.alpha = 0
+               addChild(gameOver)
+               
+               let fadeIn = SKAction.fadeIn(withDuration: 0.5)
+               let scaleDown = SKAction.scale(to: 1, duration: 0.5)
+               let group = SKAction.group([fadeIn, scaleDown])
+               gameOver.run(group)
+               
+               
+          }
+          
+     }
 }

@@ -8,6 +8,7 @@
 
 import WatchKit
 import Foundation
+import SpriteKit
 
 
 class InterfaceController: WKInterfaceController {
@@ -35,13 +36,22 @@ class InterfaceController: WKInterfaceController {
 
      @IBAction func startGame(_ sender: Any) {
      
+          if gameScene != nil {
+               guard gameScene.isPlayerAlive == false else { return }
+          }
+          
           gameScene = GameScene(size: CGSize(width: 154, height: 174))
           
+          gameScene.parentInterfaceController = self
+          gameScene.score = 0
           gameScene.anchorPoint = CGPoint(x: 0.5, y: 0.5)
           
           crownSequencer.focus()
           crownSequencer.delegate = gameScene
           
-          gameInterface.presentScene(gameScene)
+          let transition = SKTransition.doorway(withDuration: 1)
+          gameInterface.presentScene(gameScene, transition: transition)
+          
+          
      }
 }
